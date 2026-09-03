@@ -1,0 +1,4 @@
+int x = 15;
+int y = 0;
+int r = x % y;
+print(r);

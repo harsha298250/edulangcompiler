@@ -1,0 +1,5 @@
+bool is_valid = true;
+bool is_active = false;
+bool result = is_valid and not is_active;
+print("Boolean result:");
+print(result);

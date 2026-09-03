@@ -1,0 +1,5 @@
+float price = 19.99;
+float tax = 1.50;
+float total = price + tax;
+print("Total price:");
+print(total);

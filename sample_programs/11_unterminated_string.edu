@@ -1,0 +1,2 @@
+string message = "Hello EduLang;
+print(message);

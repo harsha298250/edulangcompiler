@@ -1,0 +1,4 @@
+string greeting = "Hello, ";
+string name = "EduLang!";
+string msg = greeting + name;
+print(msg);
