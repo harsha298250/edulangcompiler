@@ -109,22 +109,18 @@ st.markdown("""
 # ---------------------------------------------------------------------------
 # Header & Navigation Modes
 # ---------------------------------------------------------------------------
-col_title, col_nav = st.columns([2.5, 2.5])
-with col_title:
-    st.markdown("## 🧩 EduLang Learning Platform")
-    st.markdown(
-        '<p class="subtitle">Interactive Compiler Design & Programming Platform · '
-        'Lexer → Parser → Semantic Analyzer → TAC VM → Explainer</p>',
-        unsafe_allow_html=True,
-    )
+st.markdown("## 🧩 EduLang Learning Platform")
+st.markdown(
+    '<p class="subtitle">Interactive Compiler Design & Programming Platform · '
+    'Lexer → Parser → Semantic Analyzer → TAC VM → Explainer</p>',
+    unsafe_allow_html=True,
+)
 
-with col_nav:
-    mode = st.radio(
-        "Platform Mode",
-        ["💻 IDE & Visualizer", "📚 Learning Mode", "🧩 Practice Arena", "🎯 Compiler Quiz"],
-        horizontal=True,
-        label_visibility="collapsed"
-    )
+mode = st.radio(
+    "Select Platform Mode",
+    ["💻 IDE & Visualizer", "📚 Learning Mode", "🧩 Practice Arena", "🎯 Compiler Quiz"],
+    horizontal=True,
+)
 
 st.markdown("---")
 
@@ -386,13 +382,13 @@ if mode == "💻 IDE & Visualizer":
 
     with right:
         tabs = st.tabs([
-            f"Console & Explainer ({len(res['console'])})",
+            f"Console ({len(res['console'])})",
             f"Tokens ({len(res['tokens'])})",
             "AST Tree",
             "Symbol Table",
-            f"TAC Code ({len(res['tac'])})",
-            f"TAC Step VM ({len(res['trace'])})",
-            "Grammar Viewer",
+            f"TAC ({len(res['tac'])})",
+            f"Step VM ({len(res['trace'])})",
+            "Grammar",
         ])
 
         # --- 1. Console & Structured Error Explainer ---
