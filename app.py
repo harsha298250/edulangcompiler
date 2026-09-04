@@ -409,18 +409,21 @@ if mode == "💻 IDE & Visualizer":
             # Formatted Error Explanation Card
             if not res["success"] and res["error_obj"]:
                 err_dict = explain_structured(res["error_obj"])
-                st.markdown(
+                sug_html = f'<div class="err-section-title">💡 SUGGESTION</div><div class="err-text">Did you mean <b>{err_dict["suggestion"]}</b>?</div>' if err_dict["suggestion"] else ""
+                ex_html = f'<div class="err-section-title">💡 EXAMPLE FIX</div><div class="err-text"><code>{err_dict["example"]}</code></div>' if err_dict["example"] else ""
+
+                card_html = (
                     f'<div class="err-card">'
                     f'<div class="err-title">❌ {err_dict["title"]}</div>'
                     f'<div class="err-section-title">📌 WHAT HAPPENED?</div><div class="err-text">{err_dict["what"]}</div>'
-                    f'{f\'<div class="err-section-title">💡 SUGGESTION</div><div class="err-text">Did you mean <b>{err_dict["suggestion"]}</b>?</div>\' if err_dict["suggestion"] else ""}'
+                    f'{sug_html}'
                     f'<div class="err-section-title">❓ WHY DID IT HAPPEN?</div><div class="err-text">{err_dict["why"]}</div>'
                     f'<div class="err-section-title">🛠️ HOW TO FIX IT?</div><div class="err-text">{err_dict["fix"]}</div>'
-                    f'{f\'<div class="err-section-title">💡 EXAMPLE FIX</div><div class="err-text"><code>{err_dict["example"]}</code></div>\' if err_dict["example"] else ""}'
+                    f'{ex_html}'
                     f'<div class="err-section-title">🎓 COMPILER CONCEPT</div><div class="err-concept">{err_dict["concept"]}</div>'
-                    f'</div>',
-                    unsafe_allow_html=True
+                    f'</div>'
                 )
+                st.markdown(card_html, unsafe_allow_html=True)
 
             # Console Output Box
             if res["console"]:
