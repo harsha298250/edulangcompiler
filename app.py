@@ -144,17 +144,78 @@ if "target_lesson_id" not in st.session_state:
     st.session_state.target_lesson_id = None
 if "target_practice_category" not in st.session_state:
     st.session_state.target_practice_category = None
+NAV_MODES = [
+    "🏠 Home",
+    "💻 Compiler IDE",
+    "🎓 Learn Compiler Pipeline",
+    "📚 Learning Mode",
+    "🧩 Practice Arena",
+    "🎯 Compiler Quiz",
+    "📖 Language Reference"
+]
+
 if "nav_mode" not in st.session_state:
     st.session_state.nav_mode = "🏠 Home"
+
+if "nav_radio_widget" not in st.session_state:
+    st.session_state.nav_radio_widget = st.session_state.nav_mode
+
+def sync_nav_from_widget():
+    st.session_state.nav_mode = st.session_state.nav_radio_widget
+
+def set_nav_mode(target_mode):
+    st.session_state.nav_mode = target_mode
+    st.session_state.nav_radio_widget = target_mode
+
+def jump_to_lesson(les_id):
+    st.session_state.target_lesson_id = les_id
+    set_nav_mode("📚 Learning Mode")
+
+def jump_to_practice(prac_cat):
+    st.session_state.target_practice_category = prac_cat
+    set_nav_mode("🧩 Practice Arena")
+
+def load_lesson_into_ide(code):
+    st.session_state.code = code
+    st.session_state.sample_choice = "(custom code)"
+    set_nav_mode("💻 Compiler IDE")
+
+def vm_step_start():
+    st.session_state.vm_step_slider = 1
+
+def vm_step_prev():
+    st.session_state.vm_step_slider = max(1, st.session_state.get("vm_step_slider", 1) - 1)
+
+def vm_step_next(max_s):
+    st.session_state.vm_step_slider = min(max_s, st.session_state.get("vm_step_slider", 1) + 1)
+
+def vm_step_end(max_s):
+    st.session_state.vm_step_slider = max_s
+
+def vm_step_reset():
+    st.session_state.vm_step_slider = 1
+
+def prev_pipe_stage():
+    st.session_state.pipe_step = max(0, st.session_state.get("pipe_step", 0) - 1)
+
+def next_pipe_stage(total):
+    st.session_state.pipe_step = min(total - 1, st.session_state.get("pipe_step", 0) + 1)
+
+def prev_lesson():
+    st.session_state.les_idx = max(0, st.session_state.get("les_idx", 0) - 1)
+
+def next_lesson(total):
+    st.session_state.les_idx = min(total - 1, st.session_state.get("les_idx", 0) + 1)
 
 # Header Progress Bar & Mode Selection
 hdr_col1, hdr_col2 = st.columns([3.5, 1])
 with hdr_col1:
     mode = st.radio(
         "Select Platform Mode",
-        ["🏠 Home", "💻 Compiler IDE", "🎓 Learn Compiler Pipeline", "📚 Learning Mode", "🧩 Practice Arena", "🎯 Compiler Quiz", "📖 Language Reference"],
+        NAV_MODES,
         horizontal=True,
-        key="nav_mode"
+        key="nav_radio_widget",
+        on_change=sync_nav_from_widget
     )
 with hdr_col2:
     total_l = len(LESSONS)
@@ -377,25 +438,15 @@ if mode == "🏠 Home":
 
     h_col1, h_col2, h_col3, h_col4, h_col5 = st.columns(5)
     with h_col1:
-        if st.button("💻 Open IDE", use_container_width=True, type="primary"):
-            st.session_state.nav_mode = "💻 Compiler IDE"
-            st.rerun()
+        st.button("💻 Open IDE", use_container_width=True, type="primary", on_click=set_nav_mode, args=("💻 Compiler IDE",))
     with h_col2:
-        if st.button("🎓 Pipeline Mode", use_container_width=True):
-            st.session_state.nav_mode = "🎓 Learn Compiler Pipeline"
-            st.rerun()
+        st.button("🎓 Pipeline Mode", use_container_width=True, on_click=set_nav_mode, args=("🎓 Learn Compiler Pipeline",))
     with h_col3:
-        if st.button("📚 Curriculum", use_container_width=True):
-            st.session_state.nav_mode = "📚 Learning Mode"
-            st.rerun()
+        st.button("📚 Curriculum", use_container_width=True, on_click=set_nav_mode, args=("📚 Learning Mode",))
     with h_col4:
-        if st.button("🧩 Practice", use_container_width=True):
-            st.session_state.nav_mode = "🧩 Practice Arena"
-            st.rerun()
+        st.button("🧩 Practice", use_container_width=True, on_click=set_nav_mode, args=("🧩 Practice Arena",))
     with h_col5:
-        if st.button("🎯 Quiz", use_container_width=True):
-            st.session_state.nav_mode = "🎯 Compiler Quiz"
-            st.rerun()
+        st.button("🎯 Quiz", use_container_width=True, on_click=set_nav_mode, args=("🎯 Compiler Quiz",))
 
     st.markdown("---")
 
@@ -603,16 +654,10 @@ elif mode == "💻 Compiler IDE":
                 err_btn_col1, err_btn_col2 = st.columns(2)
                 with err_btn_col1:
                     target_les = get_lesson_id_for_error(res["error_obj"])
-                    if st.button("📖 Learn From This Error", use_container_width=True):
-                        st.session_state.target_lesson_id = target_les
-                        st.session_state.nav_mode = "📚 Learning Mode"
-                        st.rerun()
+                    st.button("📖 Learn From This Error", use_container_width=True, on_click=jump_to_lesson, args=(target_les,))
                 with err_btn_col2:
                     target_prac = get_practice_category_for_error(res["error_obj"])
-                    if st.button(f"🧩 Practice {target_prac} Errors", use_container_width=True):
-                        st.session_state.target_practice_category = target_prac
-                        st.session_state.nav_mode = "🧩 Practice Arena"
-                        st.rerun()
+                    st.button(f"🧩 Practice {target_prac} Errors", use_container_width=True, on_click=jump_to_practice, args=(target_prac,))
 
             # Console Output Box
             if res["console"]:
@@ -784,20 +829,15 @@ elif mode == "💻 Compiler IDE":
                 max_steps = len(res["trace"])
 
                 with ctrl_col1:
-                    if st.button("⏮ Start", use_container_width=True):
-                        st.session_state.vm_step_slider = 1
+                    st.button("⏮ Start", use_container_width=True, on_click=vm_step_start)
                 with ctrl_col2:
-                    if st.button("◀ Previous", use_container_width=True):
-                        st.session_state.vm_step_slider = max(1, st.session_state.get("vm_step_slider", 1) - 1)
+                    st.button("◀ Previous", use_container_width=True, on_click=vm_step_prev)
                 with ctrl_col3:
-                    if st.button("Next ▶", use_container_width=True):
-                        st.session_state.vm_step_slider = min(max_steps, st.session_state.get("vm_step_slider", 1) + 1)
+                    st.button("Next ▶", use_container_width=True, on_click=vm_step_next, args=(max_steps,))
                 with ctrl_col4:
-                    if st.button("▶ Run to End", use_container_width=True):
-                        st.session_state.vm_step_slider = max_steps
+                    st.button("▶ Run to End", use_container_width=True, on_click=vm_step_end, args=(max_steps,))
                 with ctrl_col5:
-                    if st.button("🔄 Reset VM", use_container_width=True):
-                        st.session_state.vm_step_slider = 1
+                    st.button("🔄 Reset VM", use_container_width=True, on_click=vm_step_reset)
 
                 step_idx = st.slider("Execution Step Pointer", min_value=1, max_value=max_steps, value=st.session_state.get("vm_step_slider", 1), step=1, key="vm_step_slider")
                 st.session_state.vm_step_idx = step_idx
@@ -881,11 +921,9 @@ elif mode == "🎓 Learn Compiler Pipeline":
 
     p_nav1, p_nav2, p_nav3 = st.columns([1, 3, 1])
     with p_nav1:
-        if st.button("⏮ Previous Stage", use_container_width=True):
-            st.session_state.pipe_step = max(0, st.session_state.pipe_step - 1)
+        st.button("⏮ Previous Stage", use_container_width=True, on_click=prev_pipe_stage)
     with p_nav3:
-        if st.button("Next Stage ⏭", use_container_width=True):
-            st.session_state.pipe_step = min(len(stages_labels) - 1, st.session_state.pipe_step + 1)
+        st.button("Next Stage ⏭", use_container_width=True, on_click=next_pipe_stage, args=(len(stages_labels),))
 
     curr_p_idx = st.session_state.pipe_step
     st.markdown(f"#### Active Stage: `{stages_labels[curr_p_idx]}`")
@@ -975,13 +1013,9 @@ elif mode == "📚 Learning Mode":
 
         nav_l_col1, nav_l_col2 = st.columns(2)
         with nav_l_col1:
-            if st.button("⏮ Previous", key="prev_les_btn", use_container_width=True):
-                st.session_state.les_idx = max(0, st.session_state.les_idx - 1)
-                st.rerun()
+            st.button("⏮ Previous", key="prev_les_btn", use_container_width=True, on_click=prev_lesson)
         with nav_l_col2:
-            if st.button("Next ⏭", key="next_les_btn", use_container_width=True):
-                st.session_state.les_idx = min(len(LESSONS) - 1, st.session_state.les_idx + 1)
-                st.rerun()
+            st.button("Next ⏭", key="next_les_btn", use_container_width=True, on_click=next_lesson, args=(len(LESSONS),))
 
     with les_col2:
         st.markdown(f"### {lesson['title']}")
@@ -1005,12 +1039,7 @@ elif mode == "📚 Learning Mode":
         st.markdown(f"#### 💻 Example EduLang Code")
         st.code(lesson["code"], language="python")
 
-        if st.button("🚀 Load Code into Compiler IDE"):
-            st.session_state.code = lesson["code"]
-            st.session_state.sample_choice = "(custom code)"
-            st.session_state.nav_mode = "💻 Compiler IDE"
-            st.success("Lesson code loaded into IDE!")
-            st.rerun()
+        st.button("🚀 Load Code into Compiler IDE", on_click=load_lesson_into_ide, args=(lesson["code"],))
 
         # Mini Exercise Section
         if "exercise" in lesson:
