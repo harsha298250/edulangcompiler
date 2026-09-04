@@ -67,9 +67,9 @@ class TACGenerator:
         if isinstance(stmt, VarDecl):
             if stmt.expr is not None:
                 val = self.gen_expr(stmt.expr)
-                self.emit(f"{stmt.name} = {val}", line=stmt.line)
+                self.emit(f"DECL {stmt.name} = {val}", line=stmt.line)
             else:
-                self.emit(f"{stmt.name} = <uninitialized>", line=stmt.line)
+                self.emit(f"DECL {stmt.name} = <uninitialized>", line=stmt.line)
 
         elif isinstance(stmt, Assign):
             val = self.gen_expr(stmt.expr)
@@ -102,8 +102,12 @@ class TACGenerator:
             self.emit(f"{end_label}:", line=stmt.line)
 
         elif isinstance(stmt, Block):
+            first_line = getattr(stmt.statements[0], "line", None) if stmt.statements else None
+            last_line = getattr(stmt.statements[-1], "line", None) if stmt.statements else None
+            self.emit("ENTER_SCOPE", line=first_line)
             for s in stmt.statements:
                 self.gen_stmt(s)
+            self.emit("EXIT_SCOPE", line=last_line)
 
     def gen_expr(self, expr):
         """Returns the 'address' (temp name, literal, or var name) holding this value."""
@@ -143,6 +147,16 @@ def explain_tac_instruction(instr):
     line_str = str(instr).strip()
     if not line_str:
         return ""
+    if line_str == "ENTER_SCOPE":
+        return "Enter new local block scope"
+    if line_str == "EXIT_SCOPE":
+        return "Exit local block scope and restore outer scope"
+    if line_str.startswith("DECL "):
+        rest = line_str[5:].strip()
+        if "=" in rest:
+            lhs, rhs = [p.strip() for p in rest.split("=", 1)]
+            return f"Declare new local variable '{lhs}' initialized to {rhs}"
+        return f"Declare new local variable '{rest}'"
     if line_str.endswith(":") and not ("=" in line_str or "GOTO" in line_str or "PRINT" in line_str):
         lbl = line_str[:-1]
         return f"Label {lbl}: Jump target for control flow"

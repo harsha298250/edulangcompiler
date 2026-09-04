@@ -1,11 +1,12 @@
 """
 Compiler Design Quiz Data for EduLang
-Self-assessment questions covering compiler design concepts.
+Self-assessment questions covering compiler design concepts across all pipeline stages.
 """
 
 QUIZ_QUESTIONS = [
     {
         "id": "q1",
+        "category": "Lexical Analysis",
         "question": "What is the primary role of the Lexer (Lexical Analyzer) in a compiler?",
         "options": [
             "To execute machine code on CPU",
@@ -18,6 +19,7 @@ QUIZ_QUESTIONS = [
     },
     {
         "id": "q2",
+        "category": "Syntax Analysis",
         "question": "Which compiler phase is responsible for building the Abstract Syntax Tree (AST)?",
         "options": [
             "Lexical Analyzer",
@@ -30,6 +32,7 @@ QUIZ_QUESTIONS = [
     },
     {
         "id": "q3",
+        "category": "Semantic Analysis",
         "question": "What type of error is 'Variable x is used before declaration'?",
         "options": [
             "Lexical Error",
@@ -42,6 +45,7 @@ QUIZ_QUESTIONS = [
     },
     {
         "id": "q4",
+        "category": "TAC",
         "question": "What does TAC stand for in compiler intermediate representations?",
         "options": [
             "Technical Access Code",
@@ -54,6 +58,7 @@ QUIZ_QUESTIONS = [
     },
     {
         "id": "q5",
+        "category": "Symbol Tables",
         "question": "Why do compilers use block-scoped Symbol Tables?",
         "options": [
             "To format text colors in IDE",
@@ -66,6 +71,7 @@ QUIZ_QUESTIONS = [
     },
     {
         "id": "q6",
+        "category": "Execution",
         "question": "What happens if a program contains a Division by Zero during execution in the TAC VM?",
         "options": [
             "The compiler crashes silently",
@@ -75,5 +81,31 @@ QUIZ_QUESTIONS = [
         ],
         "correct": 1,
         "explanation": "The TAC VM safely intercepts division by zero and triggers a RUN001 diagnostic error."
+    },
+    {
+        "id": "q7",
+        "category": "AST",
+        "question": "What is the main benefit of an AST compared to a full concrete Parse Tree?",
+        "options": [
+            "AST contains hardware assembly instructions",
+            "AST removes redundant syntactic tokens (semicolons, braces) to focus on structural semantics",
+            "AST cannot represent while loops",
+            "AST is generated before Lexical Analysis"
+        ],
+        "correct": 1,
+        "explanation": "ASTs strip away concrete syntax tokens like semicolons and braces, retaining pure hierarchical expression structures."
+    },
+    {
+        "id": "q8",
+        "category": "Error Handling",
+        "question": "How does EduLang suggest typo fixes when an undeclared identifier is found?",
+        "options": [
+            "Uses Levenshtein edit distance to find the closest valid keyword or declared variable",
+            "Guesses randomly from a list",
+            "Uses internet search API",
+            "Prompts the user to retype the operating system name"
+        ],
+        "correct": 0,
+        "explanation": "EduLang calculates Levenshtein distance between misspelled words and valid candidates to offer 'Did you mean?' suggestions."
     }
 ]

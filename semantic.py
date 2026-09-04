@@ -43,6 +43,39 @@ class Scope:
             scope = scope.parent
         return None
 
+    def resolve_with_trace(self, name):
+        """Resolves a variable while recording the scope traversal lookup path."""
+        steps = []
+        scope = self
+        found_type = None
+        while scope:
+            found_here = name in scope.vars
+            if found_here:
+                found_type = scope.vars[name]
+                steps.append({
+                    "scope": scope.name,
+                    "found": True,
+                    "type": found_type,
+                    "msg": f"Searching '{scope.name}'... Found variable '{name}' of type '{found_type}'!"
+                })
+                break
+            else:
+                steps.append({
+                    "scope": scope.name,
+                    "found": False,
+                    "type": None,
+                    "msg": f"Searching '{scope.name}'... Variable '{name}' not declared here. Checking parent scope..."
+                })
+            scope = scope.parent
+        if not found_type and steps and not steps[-1]["found"]:
+            steps.append({
+                "scope": "Root",
+                "found": False,
+                "type": None,
+                "msg": f"Lookup failed: Variable '{name}' is undeclared in all active scope levels."
+            })
+        return found_type, steps
+
     def declared_here(self, name):
         return name in self.vars
 
@@ -53,6 +86,33 @@ class Scope:
             result.update(scope.vars.keys())
             scope = scope.parent
         return sorted(list(result))
+
+
+def find_shadowed_variables(scope):
+    """Finds all variable shadowing instances across a scope hierarchy."""
+    shadowed = []
+    if scope is None:
+        return shadowed
+
+    def _traverse(curr_scope):
+        for var_name, var_type in curr_scope.vars.items():
+            parent = curr_scope.parent
+            while parent:
+                if var_name in parent.vars:
+                    shadowed.append({
+                        "var_name": var_name,
+                        "inner_scope": curr_scope.name,
+                        "outer_scope": parent.name,
+                        "type": var_type
+                    })
+                    break
+                parent = parent.parent
+        for child in curr_scope.children:
+            _traverse(child)
+
+    _traverse(scope)
+    return shadowed
+
 
 
 def render_scope_tree(scope, prefix="", is_last=True, is_root=True):
@@ -99,16 +159,19 @@ class SemanticAnalyzer:
 
     def visit_stmt(self, stmt, scope):
         if isinstance(stmt, VarDecl):
-            if scope.declared_here(stmt.name):
+            already_declared = scope.declared_here(stmt.name)
+            if already_declared:
                 self.errors.append(SemError(
                     "SEM002", stmt.line,
                     f"Variable '{stmt.name}' is already declared in this scope",
                     {"name": stmt.name}
                 ))
-            else:
-                scope.declare(stmt.name, stmt.var_type)
+            expr_type = None
             if stmt.expr is not None:
                 expr_type = self.visit_expr(stmt.expr, scope)
+            if not already_declared:
+                scope.declare(stmt.name, stmt.var_type)
+            if stmt.expr is not None:
                 self.check_assign_compat(stmt.var_type, expr_type, stmt.name, stmt.line)
 
         elif isinstance(stmt, Assign):
@@ -152,7 +215,10 @@ class SemanticAnalyzer:
                 self.visit_stmt(stmt.block, while_scope)
 
         elif isinstance(stmt, Block):
-            line_str = f"Line {stmt.statements[0].line}" if stmt.statements else "Empty"
+            first_line = getattr(stmt, "line", None)
+            if first_line is None and stmt.statements:
+                first_line = getattr(stmt.statements[0], "line", None)
+            line_str = f"Line {first_line}" if first_line is not None else "Block"
             block_scope = Scope(f"Block Scope ({line_str})", parent=scope)
             self.visit_block_stmts(stmt.statements, block_scope)
 
@@ -214,7 +280,7 @@ class SemanticAnalyzer:
             return None
 
         if op in ("==", "!="):
-            if lt != rt:
+            if lt != rt and not (lt in NUMERIC and rt in NUMERIC):
                 self.errors.append(SemError(
                     "SEM004", line,
                     f"Cannot compare a '{lt}' with a '{rt}' using '{op}'",

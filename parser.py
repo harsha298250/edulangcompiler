@@ -43,8 +43,8 @@ class While:
         self.cond = cond; self.block = block; self.line = line
 
 class Block:
-    def __init__(self, statements):
-        self.statements = statements
+    def __init__(self, statements, line=None):
+        self.statements = statements; self.line = line
 
 class BinOp:
     def __init__(self, op, left, right, line):
@@ -77,6 +77,7 @@ class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
         self.pos = 0
+        self.errors = []
 
     def peek(self, offset=0):
         idx = self.pos + offset
@@ -104,12 +105,31 @@ class Parser:
             {"expected": type_, "got": got.type, "got_value": _display(got), "hint": friendly_hint}
         )
 
+    def synchronize(self):
+        """Advances token stream past statement boundary (SEMI or keyword) to recover."""
+        self.advance()
+        while not self.check("EOF"):
+            if self.current().type == "SEMI":
+                self.advance()
+                return
+            if self.peek(0).type in TYPE_TOKENS or self.peek(0).type in ("IF", "WHILE", "PRINT"):
+                return
+            self.advance()
+
     # ---------- grammar ----------
 
     def parse_program(self):
         stmts = []
         while not self.check("EOF"):
-            stmts.append(self.parse_statement())
+            try:
+                stmts.append(self.parse_statement())
+            except ParseError as e:
+                self.errors.append(e)
+                self.synchronize()
+                if not stmts and self.check("EOF"):
+                    break
+        if self.errors:
+            raise self.errors[0]
         return Program(stmts)
 
     def parse_statement(self):
@@ -187,12 +207,12 @@ class Parser:
         return While(cond, block, line)
 
     def parse_block(self):
-        self.expect("LBRACE", "SYN002", "an opening brace '{' to start a block")
+        lbrace_tok = self.expect("LBRACE", "SYN002", "an opening brace '{' to start a block")
         stmts = []
         while not self.check("RBRACE") and not self.check("EOF"):
             stmts.append(self.parse_statement())
         self.expect("RBRACE", "SYN003", "a closing brace '}' to match the '{'")
-        return Block(stmts)
+        return Block(stmts, line=lbrace_tok.line)
 
     # ---------- expressions (precedence climbing) ----------
 

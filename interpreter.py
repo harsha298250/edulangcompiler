@@ -1,10 +1,9 @@
 """
-Interpreter for EduLang — actually EXECUTES a semantically-valid AST.
+Alternative Tree-Walking Interpreter for EduLang.
 
-This is a genuine tree-walking interpreter (same technique used by real
-scripting language prototypes): it evaluates expressions and runs
-statements directly against a Python runtime environment, producing real
-program output and a real final variable state. No guessing involved.
+This module contains an alternative tree-walking interpreter retained as a
+teaching and reference implementation. The production execution path of
+EduLang uses tac_interpreter.py and the Three-Address Code (TAC) Virtual Machine.
 """
 
 from parser import (
@@ -134,12 +133,7 @@ class Interpreter:
         if op == "/":
             if r == 0:
                 raise RuntimeError("Division by zero")
-            if isinstance(l, float) or isinstance(r, float):
-                return l / r
-            # C-style truncating integer division (toward zero), not
-            # Python's floor division (toward negative infinity).
-            q = l / r
-            return int(q) if q >= 0 else -int(-q)
+            return l / r
         if op == "%":
             if r == 0:
                 raise RuntimeError("Modulo by zero")

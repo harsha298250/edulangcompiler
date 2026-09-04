@@ -349,3 +349,36 @@ def explain_structured(err):
         elif line_s.startswith("🎓 Concept:"):
             parts["concept"] = line_s[11:].strip()
     return parts
+
+
+def get_lesson_id_for_error(err):
+    """Maps a compiler error to the most relevant educational lesson ID."""
+    code = getattr(err, "code", "")
+    phase = getattr(err, "phase", "")
+    if code.startswith("LEX") or phase == "Lexical":
+        return "2_lexer"
+    if code.startswith("SYN") or phase == "Syntax":
+        return "4_syntax"
+    if code.startswith("SEM") or phase == "Semantic":
+        if code == "SEM001" or code == "SEM002":
+            return "9_symbol_table"
+        return "8_semantic"
+    if code.startswith("RUN") or phase == "Runtime":
+        return "13_vm"
+    return "1_intro"
+
+
+def get_practice_category_for_error(err):
+    """Maps a compiler error to the corresponding Practice Arena category."""
+    code = getattr(err, "code", "")
+    phase = getattr(err, "phase", "")
+    if code.startswith("LEX") or phase == "Lexical":
+        return "Lexical Analysis"
+    if code.startswith("SYN") or phase == "Syntax":
+        return "Syntax Analysis"
+    if code.startswith("SEM") or phase == "Semantic":
+        return "Semantic Analysis"
+    if code.startswith("RUN") or phase == "Runtime":
+        return "Runtime / Execution"
+    return "Syntax Analysis"
+

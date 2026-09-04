@@ -7,6 +7,14 @@ Raises structured RuntimeErrorObject for division by zero, modulo by zero, infin
 """
 
 
+import re
+
+
+def is_temporary(name: str) -> bool:
+    """Returns True iff variable name matches compiler temporary register pattern (e.g. t0, t1, t12)."""
+    return bool(re.fullmatch(r"t\d+", str(name)))
+
+
 class RuntimeErrorObject(Exception):
     """Structured runtime error object matching the compiler's diagnostic format."""
     def __init__(self, code, line, technical, context=None):
@@ -18,39 +26,84 @@ class RuntimeErrorObject(Exception):
         super().__init__(technical)
 
 
+class RuntimeScope:
+    """Represents a single runtime scope frame linked to parent scope."""
+    def __init__(self, parent=None):
+        self.vars = {}
+        self.parent = parent
+
+    def declare(self, name, val):
+        self.vars[name] = val
+
+    def assign(self, name, val):
+        scope = self
+        while scope:
+            if name in scope.vars:
+                scope.vars[name] = val
+                return True
+            scope = scope.parent
+        self.vars[name] = val
+        return False
+
+    def get(self, name):
+        scope = self
+        while scope:
+            if name in scope.vars:
+                return scope.vars[name]
+            scope = scope.parent
+        raise KeyError(name)
+
+    def all_vars(self):
+        result = {}
+        scopes = []
+        s = self
+        while s:
+            scopes.append(s)
+            s = s.parent
+        for s in reversed(scopes):
+            result.update(s.vars)
+        return result
+
+
 class TACInterpreter:
     """
-    Virtual Machine that executes TAC instruction streams.
+    Virtual Machine that executes TAC instruction streams with scope frames.
     """
     def __init__(self, tac_lines, step_limit=200000, max_trace_steps=500):
+        self.tac_instructions = list(tac_lines)
         self.tac_lines = [str(line).strip() for line in tac_lines if str(line).strip()]
         self.step_limit = step_limit
         self.max_trace_steps = max_trace_steps
-        self.env = {}
+        self.global_scope = RuntimeScope()
+        self.current_scope = self.global_scope
         self.output = []
         self.trace = []
         self.pc = 0
         self.steps = 0
         self.labels = {}
+        self.curr_line = None
         self._build_label_table()
 
     def _build_label_table(self):
-        for idx, line in enumerate(self.tac_lines):
+        for idx, raw_instr in enumerate(self.tac_instructions):
+            line = str(raw_instr).strip()
             if line.endswith(":") and not ("=" in line or "GOTO" in line or "PRINT" in line):
                 label_name = line[:-1].strip()
                 self.labels[label_name] = idx
 
     def run(self):
-        while self.pc < len(self.tac_lines):
+        while self.pc < len(self.tac_instructions):
             self.steps += 1
             if self.steps > self.step_limit:
                 raise RuntimeErrorObject(
-                    "RUN003", None,
+                    "RUN003", self.curr_line,
                     "Program exceeded maximum execution steps (possible infinite loop)",
                     {"limit": self.step_limit}
                 )
 
-            line = self.tac_lines[self.pc]
+            raw_instr = self.tac_instructions[self.pc]
+            self.curr_line = getattr(raw_instr, "line", None)
+            line = str(raw_instr).strip()
             prev_pc_idx = self.pc
 
             # Ignore raw label declarations
@@ -65,13 +118,33 @@ class TACInterpreter:
                 self.pc += 1
 
         # Return stdout output lines, final non-temporary variables, and trace
-        user_vars = {k: v for k, v in self.env.items() if not k.startswith("t")}
+        user_vars = {k: v for k, v in self.current_scope.all_vars().items() if not is_temporary(k)}
         return self.output, user_vars, self.trace
 
     def _exec_instruction(self, line, prev_pc_idx):
         step_desc = ""
 
-        if line.startswith("PRINT "):
+        if line == "ENTER_SCOPE":
+            self.current_scope = RuntimeScope(parent=self.current_scope)
+            step_desc = "Enter block scope"
+
+        elif line == "EXIT_SCOPE":
+            if self.current_scope.parent:
+                self.current_scope = self.current_scope.parent
+            step_desc = "Exit block scope"
+
+        elif line.startswith("DECL "):
+            rest = line[5:].strip()
+            if "=" in rest:
+                lhs, rhs = [p.strip() for p in rest.split("=", 1)]
+                val = self._eval_rhs(rhs)
+                self.current_scope.declare(lhs, val)
+                step_desc = f"DECL {lhs} = {self._stringify(val)}"
+            else:
+                self.current_scope.declare(rest, None)
+                step_desc = f"DECL {rest}"
+
+        elif line.startswith("PRINT "):
             arg = line[6:].strip()
             val = self._eval_val(arg)
             out_str = self._stringify(val)
@@ -84,7 +157,7 @@ class TACInterpreter:
                 self.pc = self.labels[target]
                 step_desc = f"Jump to {target}"
             else:
-                raise RuntimeErrorObject("RUN004", None, f"Unknown label '{target}'", {"label": target})
+                raise RuntimeErrorObject("RUN004", self.curr_line, f"Unknown label '{target}'", {"label": target})
 
         elif line.startswith("IF_FALSE "):
             # Format: IF_FALSE cond GOTO label
@@ -96,21 +169,21 @@ class TACInterpreter:
                     self.pc = self.labels[target]
                     step_desc = f"Condition false -> Jump to {target}"
                 else:
-                    raise RuntimeErrorObject("RUN004", None, f"Unknown label '{target}'", {"label": target})
+                    raise RuntimeErrorObject("RUN004", self.curr_line, f"Unknown label '{target}'", {"label": target})
             else:
                 step_desc = f"Condition true -> Continue to next line"
 
         elif "=" in line:
             lhs, rhs = [p.strip() for p in line.split("=", 1)]
             val = self._eval_rhs(rhs)
-            self.env[lhs] = val
+            self.current_scope.assign(lhs, val)
             step_desc = f"{lhs} = {self._stringify(val)}"
 
         else:
-            raise RuntimeErrorObject("RUN004", None, f"Unknown TAC instruction: '{line}'", {"instruction": line})
+            raise RuntimeErrorObject("RUN004", self.curr_line, f"Unknown TAC instruction: '{line}'", {"instruction": line})
 
         if len(self.trace) < self.max_trace_steps:
-            user_vars = {k: self._stringify(v) for k, v in self.env.items() if not k.startswith("t")}
+            user_vars = {k: self._stringify(v) for k, v in self.current_scope.all_vars().items() if not is_temporary(k)}
             self.trace.append({
                 "step": self.steps,
                 "pc": prev_pc_idx,
@@ -157,8 +230,8 @@ class TACInterpreter:
             if op == "-":
                 if isinstance(val, (int, float)):
                     return -val
-                raise RuntimeErrorObject("RUN004", None, f"Cannot negate non-numeric '{val_str}'", {"val": val_str})
-            raise RuntimeErrorObject("RUN004", None, f"Unknown unary operator '{op}'", {"op": op})
+                raise RuntimeErrorObject("RUN004", self.curr_line, f"Cannot negate non-numeric '{val_str}'", {"val": val_str})
+            raise RuntimeErrorObject("RUN004", self.curr_line, f"Unknown unary operator '{op}'", {"op": op})
 
         # Binary operations: e.g. "a + b", "x == y"
         if len(tokens) == 3:
@@ -167,7 +240,7 @@ class TACInterpreter:
             right = self._eval_val(r_str)
             return self._eval_binop(op, left, right)
 
-        raise RuntimeErrorObject("RUN004", None, f"Malformed RHS expression '{rhs}'", {"expression": rhs})
+        raise RuntimeErrorObject("RUN004", self.curr_line, f"Malformed RHS expression '{rhs}'", {"expression": rhs})
 
     def _eval_binop(self, op, l, r):
         if op == "+":
@@ -181,18 +254,15 @@ class TACInterpreter:
         if op == "/":
             if r == 0:
                 raise RuntimeErrorObject(
-                    "RUN001", None,
+                    "RUN001", self.curr_line,
                     "Division by zero encountered during execution",
                     {"op": "/"}
                 )
-            if isinstance(l, float) or isinstance(r, float):
-                return l / r
-            q = l / r
-            return int(q) if q >= 0 else -int(-q)
+            return l / r
         if op == "%":
             if r == 0:
                 raise RuntimeErrorObject(
-                    "RUN002", None,
+                    "RUN002", self.curr_line,
                     "Modulo by zero encountered during execution",
                     {"op": "%"}
                 )
@@ -217,7 +287,7 @@ class TACInterpreter:
         if op == "or":
             return bool(l) or bool(r)
 
-        raise RuntimeErrorObject("RUN004", None, f"Unknown binary operator '{op}'", {"op": op})
+        raise RuntimeErrorObject("RUN004", self.curr_line, f"Unknown binary operator '{op}'", {"op": op})
 
     def _eval_val(self, val_str):
         val_str = val_str.strip()
@@ -236,11 +306,13 @@ class TACInterpreter:
         except ValueError:
             pass
 
-        if val_str in self.env:
-            return self.env[val_str]
+        try:
+            return self.current_scope.get(val_str)
+        except KeyError:
+            pass
 
         raise RuntimeErrorObject(
-            "RUN004", None,
+            "RUN004", self.curr_line,
             f"Runtime error: variable '{val_str}' is undefined",
             {"var": val_str}
         )
