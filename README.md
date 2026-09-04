@@ -1,13 +1,13 @@
-# EduLang Compiler — Student-Friendly Compiler that Explains Errors in Natural Language
+# EduLang – An Interactive Compiler Design & Programming Learning Platform
 **Team 5**
 
-A full-fledged teaching compiler and Web IDE for EduLang that catches lexical, syntax, semantic, and runtime errors, explaining each diagnostic in clear, plain English with actionable fixes.
+A full-fledged teaching compiler, Web IDE, and interactive learning platform for EduLang that catches lexical, syntax, semantic, and runtime errors, explaining each diagnostic in natural language with compiler design concepts and actionable fixes.
 
 ---
 
 ## 🚀 How to Run
 
-### 1. Web IDE (Streamlit UI)
+### 1. Interactive Web IDE & Learning Platform (Streamlit UI)
 ```bash
 python -m streamlit run app.py
 ```
@@ -18,10 +18,32 @@ Open **http://localhost:8501** in your browser.
 python main.py sample_programs/01_valid_arithmetic.edu
 ```
 
-### 3. Automated Test Suite
+### 3. Automated Test Suite (37 Unit Tests)
 ```bash
-python -m unittest discover -s tests
+python -m pytest
 ```
+
+---
+
+## 🏛️ Platform Modes & Features
+
+1. **`💻 IDE & Visualizer Mode`**:
+   - **Interactive Compiler Pipeline**: Visual status graph (`Source` → `Lexer` → `Parser` → `Semantic` → `TAC Gen` → `TAC VM`).
+   - **Enhanced Token Visualizer**: Detailed table (`Lexeme`, `Token Type`, `Value`, `Line`, `Column`) and Token Detail Inspector.
+   - **AST Visualizer**: Text and visual tree inspector with node property detail cards.
+   - **Scoped Symbol Table Visualizer**: Multi-scope hierarchy viewer for global and nested block scopes.
+   - **Step-by-Step TAC VM Stepper**: Interactive execution debugger (`[Start]`, `[Previous]`, `[Next]`, `[Run]`, `[Reset]`) displaying live PC, current instruction, variables, and stdout output.
+   - **Structured Error Explainer**: 4-part diagnostic layout (What happened, Why, How to fix, Compiler Concept) with Levenshtein distance typo suggestions.
+
+2. **`📚 Learning Mode`**:
+   - 14 Structured Interactive Lessons covering Compiler Architecture, Lexical Analysis, Tokens, CFGs, Parsing, ASTs, Semantic Analysis, Symbol Tables, Type Safety, IR, TAC, VMs, and Error Diagnostics.
+   - Includes 1-click `🚀 Load Code into IDE` for every lesson.
+
+3. **`🧩 Practice Arena`**:
+   - Controlled debugging challenges across Lexical, Syntax, Semantic, and Runtime categories with hint support and live solution validation.
+
+4. **`🎯 Compiler Quiz Mode`**:
+   - Knowledge self-assessment quiz on compiler design principles, score counter, and concept explanations.
 
 ---
 
@@ -31,12 +53,12 @@ python -m unittest discover -s tests
 Source (.edu) → Lexer → Parser → Semantic Analyzer → TAC Generator → TAC Virtual Machine → Explainer / Output
 ```
 
-1. **`lexer.py`** — Tokenizes source text into tokens (numbers, strings, keywords, operators). Reports `LEX` errors (unexpected characters, unterminated strings).
-2. **`parser.py`** — Recursive-descent expression parser with operator precedence levels. Builds Abstract Syntax Tree (AST). Reports `SYN` errors (missing semicolons, unmatched brackets, malformed expressions).
-3. **`semantic.py`** — Scoped symbol table hierarchy analysis. Collects all `SEM` errors (undeclared variables, redeclarations, type mismatches, invalid condition types).
-4. **`tac_generator.py`** — Code generator pass emitting Three-Address Code (TAC) intermediate representation.
-5. **`tac_interpreter.py`** — **TAC Virtual Machine**. Executes generated TAC instructions directly with step-limit infinite-loop protection. Raises structured `RUN` runtime errors (division by zero, modulo by zero).
-6. **`error_explainer.py`** — Decoupled deterministic diagnostic explainer. Uses template matching and Levenshtein edit-distance to provide "Did you mean?" suggestions for variable & keyword typos.
+1. **`lexer.py`** — Tokenizes source text into tokens with line and column position tracking. Reports `LEX` errors.
+2. **`parser.py`** — Recursive-descent parser with operator precedence. Builds Abstract Syntax Tree (AST). Reports `SYN` errors.
+3. **`semantic.py`** — Scoped symbol table hierarchy analysis. Collects `SEM` errors (undeclared variables, redeclarations, type mismatches).
+4. **`tac_generator.py`** — Generates Three-Address Code (TAC) intermediate representation with source line metadata.
+5. **`tac_interpreter.py`** — **TAC Virtual Machine**. Executes TAC instructions directly with step-limit protection, collecting variable environment states and step traces. Reports `RUN` runtime errors.
+6. **`error_explainer.py`** — Deterministic diagnostic explainer. Formats 4-part explanations with Levenshtein edit-distance typo suggestions and compiler design concepts.
 
 ---
 
@@ -63,3 +85,4 @@ Contains 20 comprehensive `.edu` programs:
 - `18_multiple_semantic_errors.edu` - Multiple semantic error collection
 - `19_nested_scope.edu` - Scoped variable resolution
 - `20_complex_precedence.edu` - Complex expression precedence test
+

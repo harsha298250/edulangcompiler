@@ -59,7 +59,7 @@ def find_suggestion(word, candidates, max_dist=2):
     return best_candidate
 
 
-def _fmt(title, what, why, fix, example=None, suggestion=None):
+def _fmt(title, what, why, fix, example=None, suggestion=None, concept=None):
     lines = [
         f"❌ {title}",
         f"   What happened: {what}",
@@ -72,6 +72,8 @@ def _fmt(title, what, why, fix, example=None, suggestion=None):
     ])
     if example:
         lines.append(f"   Example: {example}")
+    if concept:
+        lines.append(f"   🎓 Concept: {concept}")
     return "\n".join(lines)
 
 
@@ -83,6 +85,7 @@ def explain_lex001(err):
         "Compilers only recognize a fixed set of letters, digits, and symbols. "
         "This character might be a typo, or copy-pasted from a different font/language.",
         f"Remove or replace '{ch}' with a valid EduLang symbol.",
+        concept="Lexical Analysis & Character Recognition"
     )
 
 
@@ -94,6 +97,7 @@ def explain_lex002(err):
         "Every string must start and end with a double quote on the same line.",
         "Add a closing double-quote (\") at the end of the string.",
         example=f'"{partial}"  instead of  "{partial}',
+        concept="Lexical Analysis & String Tokenization"
     )
 
 
@@ -105,6 +109,7 @@ def explain_syn001(err):
         "so the compiler knows where one instruction stops and the next begins.",
         "Add a ';' at the end of the line shown above.",
         example="int x = 5;   // not: int x = 5",
+        concept="Syntax Analysis & Statement Termination"
     )
 
 
@@ -120,7 +125,8 @@ def explain_syn002(err):
             f"I found the type keyword '{got}', but there is no variable name following it.",
             "EduLang declaration grammar expects a type keyword (int, float, string, bool) followed by a valid variable identifier.",
             "Provide a variable name immediately after the type keyword.",
-            example="int count = 10;   // or: int value;"
+            example="int count = 10;   // or: int value;",
+            concept="Syntax Analysis & Variable Declaration Grammar"
         )
 
     sug = find_suggestion(str(got), KEYWORDS) if got else None
@@ -129,7 +135,8 @@ def explain_syn002(err):
         f"I expected {hint}, but instead I found '{got}'.",
         "The structure of this statement doesn't match EduLang's grammar rules at this point.",
         f"Check the statement on line {err.line} and add {hint}.",
-        suggestion=sug
+        suggestion=sug,
+        concept="Syntax Analysis & Grammar Production Rules"
     )
 
 
@@ -142,6 +149,7 @@ def explain_syn003(err):
         "Every '(' needs a ')' and every '{' needs a '}'. One of yours is missing or "
         "in the wrong place, often because of an extra or missing bracket earlier in the file.",
         "Count your opening and closing brackets above this line and add the missing one.",
+        concept="Syntax Analysis & Structural Bracket Matching"
     )
 
 
@@ -155,7 +163,8 @@ def explain_syn004(err):
         "This usually happens after an operator, '=', or an opening bracket, when the "
         "value that should follow is missing or misplaced.",
         "Make sure a valid value follows every '=', operator, or opening parenthesis.",
-        suggestion=sug
+        suggestion=sug,
+        concept="Syntax Analysis & Expression Grammar"
     )
 
 
@@ -170,7 +179,8 @@ def explain_sem001(err):
         "EduLang needs to know a variable's type before it's used, so it can check your code "
         "makes sense and reserve space for it.",
         f"Declare '{name}' before using it, e.g. 'int {name};' — or check for a typo in the name.",
-        suggestion=sug
+        suggestion=sug,
+        concept="Semantic Analysis & Symbol Table Resolution"
     )
 
 
@@ -182,6 +192,7 @@ def explain_sem002(err):
         "Declaring the same name twice in one scope would be ambiguous — the compiler "
         "wouldn't know which one you mean.",
         f"Remove the duplicate declaration, or rename one of the two '{name}' variables.",
+        concept="Semantic Analysis & Lexical Scope Constraints"
     )
 
 
@@ -195,6 +206,7 @@ def explain_sem003(err):
         "EduLang checks that the value you store in a variable matches the type you "
         "promised when you declared it, to prevent accidental bugs.",
         f"Either change the value to a '{declared}', or change {name}'s declared type to '{got}'.",
+        concept="Semantic Analysis & Static Type Safety"
     )
 
 
@@ -212,6 +224,7 @@ def explain_sem004(err):
         "Some operators only make sense for certain types (e.g. you can add two numbers, "
         "and join two strings with '+', but you can't add a number to a string directly).",
         "Convert one side to match the other's type, or use a different operator.",
+        concept="Semantic Analysis & Operator Type Compatibility"
     )
 
 
@@ -223,6 +236,7 @@ def explain_sem005(err):
         "The compiler can't decide whether to take a branch or keep looping unless "
         "the condition clearly evaluates to true or false.",
         "Use a comparison like 'x > 0' or 'x == 5' instead of a plain value.",
+        concept="Semantic Analysis & Control Flow Type Checking"
     )
 
 
@@ -233,7 +247,8 @@ def explain_run001(err):
         "You tried to divide a number by zero during execution.",
         "Division by zero is mathematically undefined.",
         "Make sure the divisor is not zero before performing the division.",
-        example="if (divisor != 0) { int result = dividend / divisor; }"
+        example="if (divisor != 0) { int result = dividend / divisor; }",
+        concept="Runtime Virtual Machine & Division Exception Safety"
     )
 
 
@@ -244,7 +259,8 @@ def explain_run002(err):
         "You tried to calculate modulo (%) with a divisor of zero.",
         "Modulo by zero is mathematically undefined.",
         "Check that the divisor is non-zero before performing modulo operations.",
-        example="if (m != 0) { int remainder = n % m; }"
+        example="if (m != 0) { int remainder = n % m; }",
+        concept="Runtime Virtual Machine & Modulo Exception Safety"
     )
 
 
@@ -255,7 +271,8 @@ def explain_run003(err):
         f"The program executed over {limit} steps without finishing.",
         "The while loop condition may never evaluate to false.",
         "Check that variables used in the loop condition are updated inside the loop body.",
-        example="while (i < 10) { i = i + 1; }"
+        example="while (i < 10) { i = i + 1; }",
+        concept="Runtime Virtual Machine & Loop Bound Safety / Termination"
     )
 
 
@@ -268,7 +285,8 @@ def explain_run004(err):
         err.technical,
         "The virtual machine encountered an invalid state or undefined variable during execution.",
         "Ensure all variables are declared and initialized before reading them.",
-        suggestion=sug
+        suggestion=sug,
+        concept="Runtime Virtual Machine & Memory State Evaluation"
     )
 
 
@@ -305,4 +323,29 @@ def explain(err):
         tech_str,
         "This error type doesn't have a custom explanation template yet.",
         "Re-check the code around this line against EduLang's syntax rules.",
+        concept=f"{phase_str} Analysis & Diagnostics"
     )
+
+
+def explain_structured(err):
+    """Returns error details parsed into a structured dict for educational card displays."""
+    raw_text = explain(err)
+    parts = {"title": "", "what": "", "why": "", "fix": "", "example": None, "suggestion": None, "concept": "Compiler Design"}
+    lines = raw_text.split("\n")
+    for line in lines:
+        line_s = line.strip()
+        if line_s.startswith("❌"):
+            parts["title"] = line_s[2:].strip()
+        elif line_s.startswith("What happened:"):
+            parts["what"] = line_s[14:].strip()
+        elif line_s.startswith("💡 Suggestion:"):
+            parts["suggestion"] = line_s[13:].strip()
+        elif line_s.startswith("Why:"):
+            parts["why"] = line_s[4:].strip()
+        elif line_s.startswith("How to fix it:"):
+            parts["fix"] = line_s[14:].strip()
+        elif line_s.startswith("Example:"):
+            parts["example"] = line_s[8:].strip()
+        elif line_s.startswith("🎓 Concept:"):
+            parts["concept"] = line_s[11:].strip()
+    return parts
