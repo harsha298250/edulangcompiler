@@ -8,7 +8,12 @@ Zero LLM dependencies. All results come from executing genuine compiler code.
 """
 
 import os
+import sys
 import glob
+
+# Ensure current project directory is in sys.path for Streamlit Cloud deployment
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 import streamlit as st
 
 from lexer import Lexer, LexError, explain_token
