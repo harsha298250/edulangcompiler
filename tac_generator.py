@@ -113,7 +113,8 @@ class TACGenerator:
         """Returns the 'address' (temp name, literal, or var name) holding this value."""
         if isinstance(expr, Literal):
             if expr.kind == "string":
-                return f'"{expr.value}"'
+                escaped = str(expr.value).replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\t", "\\t")
+                return f'"{escaped}"'
             if expr.kind == "bool":
                 return "true" if expr.value else "false"
             return str(expr.value)

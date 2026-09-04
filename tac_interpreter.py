@@ -201,9 +201,15 @@ class TACInterpreter:
                 i += 1
                 continue
             if rhs[i] == '"':
-                end = rhs.find('"', i + 1)
-                if end == -1:
-                    end = len(rhs) - 1
+                j = i + 1
+                while j < len(rhs):
+                    if rhs[j] == '\\':
+                        j += 2
+                        continue
+                    if rhs[j] == '"':
+                        break
+                    j += 1
+                end = j if j < len(rhs) else len(rhs) - 1
                 tokens.append(rhs[i:end + 1])
                 i = end + 1
             else:
@@ -298,7 +304,8 @@ class TACInterpreter:
         if val_str == "<uninitialized>":
             return None
         if val_str.startswith('"') and val_str.endswith('"'):
-            return val_str[1:-1]
+            inner = val_str[1:-1]
+            return inner.replace('\\"', '"').replace('\\\\', '\\').replace('\\n', '\n').replace('\\t', '\t')
         try:
             if "." in val_str:
                 return float(val_str)

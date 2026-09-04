@@ -18,7 +18,7 @@ Open **http://localhost:8501** in your browser.
 python main.py sample_programs/01_valid_arithmetic.edu
 ```
 
-### 3. Automated Test Suite (120 Automated Tests — 100% Passing)
+### 3. Automated Test Suite (121 Automated Tests — 100% Passing)
 ```bash
 python -m pytest
 ```

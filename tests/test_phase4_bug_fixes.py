@@ -309,3 +309,18 @@ def test_escaped_strings_handling():
     assert out == ["hello"]
     assert vars_["s"] == "hello"
 
+
+def test_escaped_quotes_and_concatenation():
+    """Verify escaped quotes and string concatenation."""
+    code_quote = r'string s = "He said \"hi\""; print(s);'
+    out, vars_, errs = run_pipeline(code_quote)
+    assert not errs
+    assert out == ['He said "hi"']
+    assert vars_["s"] == 'He said "hi"'
+
+    code_concat = 'string a = "Hello"; string b = "EduLang"; string c = a + b; print(c);'
+    out2, vars2, errs2 = run_pipeline(code_concat)
+    assert not errs2
+    assert out2 == ["HelloEduLang"]
+    assert vars2["c"] == "HelloEduLang"
+
