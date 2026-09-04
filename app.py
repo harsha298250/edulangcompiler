@@ -510,22 +510,22 @@ if mode == "💻 IDE & Visualizer":
 
                 with ctrl_col1:
                     if st.button("⏮ Start", use_container_width=True):
-                        st.session_state.vm_step_idx = 1
+                        st.session_state.vm_step_slider = 1
                 with ctrl_col2:
                     if st.button("◀ Previous", use_container_width=True):
-                        st.session_state.vm_step_idx = max(1, st.session_state.vm_step_idx - 1)
+                        st.session_state.vm_step_slider = max(1, st.session_state.get("vm_step_slider", 1) - 1)
                 with ctrl_col3:
                     if st.button("Next ▶", use_container_width=True):
-                        st.session_state.vm_step_idx = min(max_steps, st.session_state.vm_step_idx + 1)
+                        st.session_state.vm_step_slider = min(max_steps, st.session_state.get("vm_step_slider", 1) + 1)
                 with ctrl_col4:
                     if st.button("▶ Run to End", use_container_width=True):
-                        st.session_state.vm_step_idx = max_steps
+                        st.session_state.vm_step_slider = max_steps
                 with ctrl_col5:
                     if st.button("🔄 Reset VM", use_container_width=True):
-                        st.session_state.vm_step_idx = 1
+                        st.session_state.vm_step_slider = 1
 
-                step_slider = st.slider("Execution Step Pointer", min_value=1, max_value=max_steps, value=st.session_state.vm_step_idx, step=1, key="vm_step_slider")
-                st.session_state.vm_step_idx = step_slider
+                step_idx = st.slider("Execution Step Pointer", min_value=1, max_value=max_steps, value=st.session_state.get("vm_step_slider", 1), step=1, key="vm_step_slider")
+                st.session_state.vm_step_idx = step_idx
 
                 curr_trace = res["trace"][st.session_state.vm_step_idx - 1]
 
